@@ -212,7 +212,16 @@ def dep_graph(filename, specs):
     edge_attrs = [('style', 'dotted'), ('color', 'blue'), ('arrowhead', 'diamond')]
     for spec in specs:
         for dep in spec['ec'].all_dependencies:
-            dgr.add_edge((spec['module'], dep))
+            try:
+                dgr.add_edge((spec['module'], dep))
+            except AdditionError as err:
+                # When multiple specs are given we can easily have overlapping edges (i.e., common dependency trees)
+                # so we need to explicitly account this in our digraph
+                if "already in digraph" in str(err):
+                    _log.info("Edge (%s) -> (%s) already exists in digraph (but duplication is permitted)",
+                              (spec['module'], dep))
+                continue
+            
             if dep in spec['ec'].build_dependencies:
                 dgr.add_edge_attributes((spec['module'], dep), attrs=edge_attrs)
 
